@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Uzhlaravel\Maishapay\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class MaishapayCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'maishapay';
 
     public $description = 'My command';
 
