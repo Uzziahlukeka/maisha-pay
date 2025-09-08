@@ -2,6 +2,8 @@
 
 namespace Uzhlaravel\Maishapay\DataTransferObjects;
 
+use InvalidArgumentException;
+
 class CardPayment
 {
     public function __construct(
@@ -76,7 +78,7 @@ class CardPayment
         $validProviders = config('maishapay.card_providers', ['VISA', 'MASTERCARD', 'AMERICAN EXPRESS']);
 
         if (! in_array($provider, $validProviders)) {
-            throw new \InvalidArgumentException("Invalid card provider: {$provider}");
+            throw new InvalidArgumentException("Invalid card provider: $provider");
         }
     }
 
@@ -85,7 +87,7 @@ class CardPayment
         $validCurrencies = config('maishapay.currencies', ['CDF', 'USD', 'EUR', 'XAF', 'XOF']);
 
         if (! in_array($currency, $validCurrencies)) {
-            throw new \InvalidArgumentException("Invalid currency: {$currency}");
+            throw new InvalidArgumentException("Invalid currency: $currency");
         }
     }
 

@@ -2,6 +2,8 @@
 
 namespace Uzhlaravel\Maishapay\DataTransferObjects;
 
+use InvalidArgumentException;
+
 class MobileMoney
 {
     public function __construct(
@@ -37,7 +39,7 @@ class MobileMoney
         $validProviders = config('maishapay.mobile_money_providers', ['AIRTEL', 'ORANGE', 'MTN']);
 
         if (! in_array($provider, $validProviders)) {
-            throw new \InvalidArgumentException("Invalid mobile money provider: {$provider}");
+            throw new InvalidArgumentException("Invalid mobile money provider: $provider");
         }
     }
 
@@ -46,7 +48,7 @@ class MobileMoney
         $validCurrencies = config('maishapay.currencies', ['CDF', 'USD', 'EUR', 'XAF', 'XOF']);
 
         if (! in_array($currency, $validCurrencies)) {
-            throw new \InvalidArgumentException("Invalid currency: {$currency}");
+            throw new InvalidArgumentException("Invalid currency: $currency");
         }
     }
 

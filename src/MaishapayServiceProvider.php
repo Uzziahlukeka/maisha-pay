@@ -4,7 +4,6 @@ namespace Uzhlaravel\Maishapay;
 
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Uzhlaravel\Maishapay\Services\MaishapayService;
 
 class MaishapayServiceProvider extends PackageServiceProvider
 {
@@ -22,7 +21,7 @@ class MaishapayServiceProvider extends PackageServiceProvider
     public function packageBooted()
     {
         $this->app->bind('maishapay', function () {
-            return new MaishapayService(
+            return new Maishapay(
                 config('maishapay.public_key'),
                 config('maishapay.secret_key'),
                 config('maishapay.gateway_mode', 0),

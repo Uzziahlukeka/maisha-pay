@@ -2,10 +2,12 @@
 
 namespace Uzhlaravel\Maishapay\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
+use Uzhlaravel\Maishapay\Events\TransactionStatusUpdated;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
 class MaishapayCallbackController extends Controller
@@ -31,7 +33,7 @@ class MaishapayCallbackController extends Controller
             $transactionReference = $data['transactionReference'];
 
             // Find the transaction
-            $transaction = MaishapayTransaction::where('transaction_reference', $transactionReference)->first();
+            $transaction = MaishapayTransaction::query()->where('transaction_reference', $transactionReference)->first();
 
             if (! $transaction) {
                 Log::warning('Transaction not found', ['reference' => $transactionReference]);
@@ -75,14 +77,14 @@ class MaishapayCallbackController extends Controller
             }
 
             // Fire event for further processing
-            event(new \Uzhlaravel\Maishapay\Events\TransactionStatusUpdated($transaction, $data));
+            event(new TransactionStatusUpdated($transaction, $data));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Callback processed successfully',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('MaishaPay callback processing failed', [
                 'error' => $e->getMessage(),
                 'data' => $request->all(),

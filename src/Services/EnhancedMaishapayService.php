@@ -2,13 +2,13 @@
 
 namespace Uzhlaravel\Maishapay\Services;
 
-use Illuminate\Http\Client\Response;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
+use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
-class EnhancedMaishapayService extends MaishapayService
+class EnhancedMaishapayService extends Maishapay
 {
     /**
      * Process mobile money payment with transaction logging

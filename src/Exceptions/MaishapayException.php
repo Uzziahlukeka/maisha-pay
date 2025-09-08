@@ -18,12 +18,12 @@ class MaishapayException extends Exception
 
     public static function invalidPaymentData(string $field): self
     {
-        return new self("Invalid payment data: {$field}");
+        return new self("Invalid payment data: $field");
     }
 
     public static function transactionFailed(string $reason): self
     {
-        return new self("Transaction failed: {$reason}");
+        return new self("Transaction failed: $reason");
     }
 
     public static function networkError(): self
