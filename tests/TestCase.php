@@ -12,6 +12,17 @@ class TestCase extends Orchestra
     {
         parent::setUp();
 
+        config()->set('database.default', 'sqlite');
+
+
+        config()->set('database.connections.sqlite', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+        ]);
+        // Run migrations
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
         Factory::guessFactoryNamesUsing(
             fn (string $modelName) => 'Uzhlaravel\\Maishapay\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
@@ -22,21 +33,5 @@ class TestCase extends Orchestra
         return [
             MaishapayServiceProvider::class,
         ];
-    }
-
-    protected function defineEnvironment($app)
-    {
-        // Configure the test database
-        $app['config']->set('database.default', 'testing');
-        $app['config']->set('database.connections.testing', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
-    }
-
-    protected function defineDatabaseMigrations()
-    {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 }
