@@ -14,7 +14,6 @@ class TestCase extends Orchestra
 
         config()->set('database.default', 'sqlite');
 
-
         config()->set('database.connections.sqlite', [
             'driver' => 'sqlite',
             'database' => ':memory:',
