@@ -3,6 +3,7 @@
 namespace Uzhlaravel\Maishapay;
 
 use Illuminate\Support\ServiceProvider;
+use Uzhlaravel\Maishapay\Commands\MaishapayCommand;
 
 class MaishapayServiceProvider extends ServiceProvider
 {
@@ -54,20 +55,18 @@ class MaishapayServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         // Register commands if any
-        // $this->registerCommands();
+        $this->registerCommands();
 
         // Register helper methods
         // $this->registerHelpers();
     }
 
-    /* protected function registerCommands()
-     {
-         if ($this->app->runningInConsole()) {
-             // Register any artisan commands here
-             // $this->commands([
-             //     MaishapayInstallCommand::class,
-             // ]);
-         }
-     }
-    */
+    protected function registerCommands()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                MaishapayCommand::class,
+            ]);
+        }
+    }
 }

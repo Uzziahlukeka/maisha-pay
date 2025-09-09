@@ -20,6 +20,11 @@ arch()
     ->toExtend('Illuminate\Support\Facades\Facade');
 
 arch()
+    ->expect('src\Commands')
+    ->toBeClasses()
+    ->toExtend('Illuminate\Console\Command');
+
+arch()
     ->expect('src\Http\Controllers')
     ->toBeClasses()
     ->toExtend('Illuminate\Routing\Controller')

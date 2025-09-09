@@ -1,8 +1,8 @@
 # This is a laravel way to interact with maishapay.com
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/uzhlaravel/maishapay.svg?style=flat-square)](https://packagist.org/packages/uzhlaravel/maishapay)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/uzhlaravel/maishapay/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/uzhlaravel/maishapay/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/uzhlaravel/maishapay/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/uzhlaravel/maishapay/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/uzhlaravel/maishapay/run-tests.yml)](https://github.com/uzhlaravel/maishapay/workflows/run-tests.yml)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/uzhlaravel/maishapay/fix-php-code-style-issues.yml)](https://github.com/uzhlaravel/maishapay/workflows/fix-php-code-style-issues.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/uzhlaravel/maishapay.svg?style=flat-square)](https://packagist.org/packages/uzhlaravel/maishapay)
 
 ## Installation

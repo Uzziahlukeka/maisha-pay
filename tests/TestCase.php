@@ -12,16 +12,6 @@ class TestCase extends Orchestra
     {
         parent::setUp();
 
-        config()->set('database.default', 'sqlite');
-        config()->set('database.connections.sqlite', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-        ]);
-
-        // Run migrations
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-
         Factory::guessFactoryNamesUsing(
             fn (string $modelName) => 'Uzhlaravel\\Maishapay\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
@@ -34,14 +24,19 @@ class TestCase extends Orchestra
         ];
     }
 
-    public function getEnvironmentSetUp($app)
+    protected function defineEnvironment($app)
     {
-        config()->set('database.default', 'testing');
+        // Configure the test database
+        $app['config']->set('database.default', 'testing');
+        $app['config']->set('database.connections.testing', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+        ]);
+    }
 
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
+    protected function defineDatabaseMigrations()
+    {
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 }
