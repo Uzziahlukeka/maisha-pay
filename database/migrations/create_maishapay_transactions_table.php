@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('maishapay_transactions', function (Blueprint $table) {
             $table->id();
-            $table->string('transaction_reference')->unique();
+            $table->string('transaction_reference')->unique()->nullable();
             $table->enum('payment_type', ['MOBILEMONEY', 'CARD']);
             $table->string('provider');
             $table->decimal('amount', 10, 2);

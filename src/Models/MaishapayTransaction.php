@@ -5,6 +5,28 @@ namespace Uzhlaravel\Maishapay\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property string $transaction_reference
+ * @property string $payment_type
+ * @property string $provider
+ * @property float $amount
+ * @property string $currency
+ * @property string $customer_full_name
+ * @property string $customer_firstname
+ * @property string $customer_lastname
+ * @property string $customer_email
+ * @property string $customer_phone
+ * @property string $customer_address
+ * @property string $customer_city
+ * @property string $wallet_id
+ * @property string $callback_url
+ * @property string $status // Add this line
+ * @property array $api_response
+ * @property array $callback_data
+ * @property \Carbon\Carbon $processed_at
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ */
 class MaishapayTransaction extends Model
 {
     protected $fillable = [

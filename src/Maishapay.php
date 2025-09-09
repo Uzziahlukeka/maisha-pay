@@ -140,7 +140,7 @@ class Maishapay
     /**
      * Generate unique transaction reference
      */
-    protected function generateTransactionReference(): string
+    public function generateTransactionReference(): string
     {
         return 'MP_'.strtoupper(Str::random(10)).'_'.time();
     }

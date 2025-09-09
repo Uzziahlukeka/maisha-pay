@@ -2,6 +2,7 @@
 
 namespace Uzhlaravel\Maishapay\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
@@ -18,7 +19,7 @@ class EnhancedMaishapayService extends Maishapay
         $transactionReference = $mobileMoney->transactionReference ?: $this->generateTransactionReference();
 
         // Create transaction record
-        $transaction = MaishapayTransaction::create([
+        $transaction = MaishapayTransaction::query()->create([
             'transaction_reference' => $transactionReference,
             'payment_type' => 'MOBILEMONEY',
             'provider' => $mobileMoney->provider,
@@ -122,17 +123,17 @@ class EnhancedMaishapayService extends Maishapay
     /**
      * Get transactions by status
      */
-    public function getTransactionsByStatus(string $status): \Illuminate\Database\Eloquent\Collection
+    public function getTransactionsByStatus(string $status): Collection
     {
-        return MaishapayTransaction::where('status', strtoupper($status))->get();
+        return MaishapayTransaction::query()->where('status', strtoupper($status))->get();
     }
 
     /**
      * Get recent transactions
      */
-    public function getRecentTransactions(int $limit = 10): \Illuminate\Database\Eloquent\Collection
+    public function getRecentTransactions(int $limit = 10): Collection
     {
-        return MaishapayTransaction::latest()->limit($limit)->get();
+        return MaishapayTransaction::query()->latest()->limit($limit)->get();
     }
 
     /**
@@ -141,7 +142,7 @@ class EnhancedMaishapayService extends Maishapay
     public function getTransactionStats(): array
     {
         return [
-            'total' => MaishapayTransaction::count(),
+            'total' => MaishapayTransaction::query()->count(),
             'pending' => MaishapayTransaction::pending()->count(),
             'successful' => MaishapayTransaction::successful()->count(),
             'failed' => MaishapayTransaction::failed()->count(),
