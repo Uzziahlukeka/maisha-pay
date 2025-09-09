@@ -1,8 +1,8 @@
 # This is a laravel way to interact with maishapay.com
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/uzhlaravel/maishapay.svg?style=flat-square)](https://packagist.org/packages/uzziahlukeka/maishapay)
-[![GitHub Tests Action Status](https://github.com/uzziahlukeka/maishapay/actions/workflows/run-tests.yml/badge.svg)
-[![GitHub Code Style Action Status](https://github.com/uzziahlukeka/maishapay/actions/workflows/fix-php-code-style-issues.yml/badge.svg)
+![GitHub Tests Action Status](https://github.com/uzziahlukeka/maishapay/actions/workflows/run-tests.yml/badge.svg)
+![GitHub Code Style Action Status](https://github.com/uzziahlukeka/maishapay/actions/workflows/fix-php-code-style-issues.yml/badge.svg)
 [![Total Downloads](https://packagist.org/packages/uzziahlukeka/maishapay)
 [![License](https://img.shields.io/packagist/l/uzhlaravel/maishapay.svg?style=flat-square)](https://packagist.org/packages/uzhlaravel/maishapay)
 
