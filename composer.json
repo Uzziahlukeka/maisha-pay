@@ -1,10 +1,16 @@
 {
     "name": "uzhlaravel/maishapay",
-    "description": "This is a laravel way to interact with maishapay.com",
+    "description": "This is a laravel way to interact with maishapay.com providing good design and make it easy to use",
     "keywords": [
         "uzhlaravel",
         "laravel",
-        "maishapay"
+        "maishapay",
+        "payment",
+        "gateway",
+        "payment gateway",
+        "payment gateway laravel",
+        "africa",
+        "DRCongo"
     ],
     "homepage": "https://github.com/uzhlaravel/maishapay",
     "license": "MIT",
