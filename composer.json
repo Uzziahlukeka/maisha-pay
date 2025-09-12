@@ -1,6 +1,6 @@
 {
     "name": "uzhlaravel/maishapay",
-    "description": "This is a laravel way to interact with maishapay.com providing good design and make it easy to use",
+    "description": "This is a laravel way to interact with maishapay.net providing good design and make it easy to use",
     "keywords": [
         "uzhlaravel",
         "laravel",
@@ -12,7 +12,7 @@
         "africa",
         "DRCongo"
     ],
-    "homepage": "https://github.com/uzhlaravel/maishapay",
+    "homepage": "https://github.com/uzziahlukeka/maisha-pay",
     "license": "MIT",
     "authors": [
         {
