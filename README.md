@@ -14,6 +14,11 @@ You can install the package via composer:
 composer require uzhlaravel/maishapay
 ```
 
+- if you want to have a live account, you need to register at https://www.maishapay.net/ or https://marchand.maishapay.online/dashboard
+- if you want to have a sandbox account, you need to register at https://www.maishapay.net/ or https://marchand.maishapay.online/dashboard
+- you need to get your public and secret keys from the dashboard
+- you can set the gateway mode to 0 for sandbox and 1 for live
+
 ### automated installation 
 
 ```bash
@@ -122,6 +127,68 @@ use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
 
 ```
 
+### Automate the database
+
+```php
+
+use Uzhlaravel\Maishapay\EnhancedMaishapayService;
+use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
+use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
+use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
+
+// you can use it as a parameter to a controller method
+
+  protected $maishapay;
+
+    public function __construct(
+    private EnhancedMaishapayService $enhancedMaishapayService,
+    )
+    {
+    
+    }
+    
+      
+    // validating the request data
+    $validatedData = $request->validate([
+            'amount' => 'required|numeric',
+            'currency' => 'required|string',
+            'customerFullName' => 'required|string',
+            'customerEmailAddress' => 'required|email',
+            'provider' => 'required|string',
+            'walletID' => 'required',
+            'channel' => 'required|string',
+        ]);
+        
+            
+     //then do the transactin
+     $mobileMoney = new MobileMoney(
+                amount: $validatedData['amount'],
+                currency: $validatedData['currency'],
+                customerFullName: $validatedData['customerFullName'],
+                customerEmailAddress: $validatedData['customerEmailAddress'],
+                provider: $validatedData['provider'],
+                walletId: $validatedData['walletID'],
+                transactionReference: $transaction->transaction_reference,
+                callbackUrl: route('pricing')
+            );
+
+            // Process mobile money payment
+            $response = $this->enhancedMaishapayService->processMobileMoneyPaymentWithLogging($mobileMoney);
+
+            // Parse the response
+            $responseData = $response->json();
+            
+            
+        // or you can use implemetation directly in your controller method
+                   
+            $maishapay = new Uzhlaravel\Maishapay\Maishapay();
+        
+             $response = $this->maishapay->processMobileMoneyPayment($mobileMoney);
+             
+             ...(other code)
+
+```
+
 ## Usage Bank Payment 
 
 ```php
@@ -181,6 +248,38 @@ $transaction = MaishapayTransaction::query()->create([
             
              return redirect($responseData['paymentPage']);
         (other code)
+
+```
+
+## Automate the database transactions : 
+
+```php
+
+//importing the class
+
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService ;
+use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
+use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
+
+
+ private EnhancedMaishapayService $enhancedMaishapayService;
+
+ $cardPayment = new CardPayment(
+                amount: $validatedData['amount'],
+                currency: $validatedData['currency'],
+                customerEmailAddress: $validatedData['customerEmailAddress'],
+                customerPhoneNumber: $validatedData['customerPhoneNumber'],
+                provider: $validatedData['provider'],
+                customerFullName: $validatedData['customerFullName'],
+                transactionReference: $transaction->transaction_reference,
+                callbackUrl: route('your-callback-route') // if different from the one in your .env file
+            );
+            
+            $response = $this->enhancedMaishapayService->processCardPaymentWithLogging($cardPayment,true);
+
+            $responseData = $response->json();        
+            
+            //make sure to redirect to the payment page : 
 
 ```
 
