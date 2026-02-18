@@ -4,6 +4,7 @@ namespace Uzhlaravel\Maishapay;
 
 use Illuminate\Support\ServiceProvider;
 use Uzhlaravel\Maishapay\Commands\MaishapayCommand;
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
 
 class MaishapayServiceProvider extends ServiceProvider
 {
@@ -16,7 +17,7 @@ class MaishapayServiceProvider extends ServiceProvider
         );
 
         // Register the Maishapay service
-        $this->app->singleton('maishapay', function ($app) {
+        $this->app->singleton(EnhancedMaishapayService::class, function ($app) {
             return new Maishapay(
                 config('maishapay.public_key'),
                 config('maishapay.secret_key'),
