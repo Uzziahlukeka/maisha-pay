@@ -17,14 +17,14 @@
     "authors": [
         {
             "name": "uzziahlukeka",
-            "email": "uzziahlukeka@gmail.com",
+            "email": "contact@uzziahlukeka.tech",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.3",
         "spatie/laravel-package-tools": "^1.16",
-        "illuminate/contracts": "^11.0||^12.0"
+        "illuminate/contracts": "^11.0||^12.0||^13.0"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
