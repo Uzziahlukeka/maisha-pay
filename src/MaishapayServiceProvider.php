@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay;
 
 use Illuminate\Support\ServiceProvider;
 use Uzhlaravel\Maishapay\Commands\MaishapayCommand;
 use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
 
-class MaishapayServiceProvider extends ServiceProvider
+final class MaishapayServiceProvider extends ServiceProvider
 {
     public function register()
     {

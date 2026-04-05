@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Services;
 
 use Illuminate\Database\Eloquent\Collection;
@@ -9,7 +11,7 @@ use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
 use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
-class EnhancedMaishapayService extends Maishapay
+final class EnhancedMaishapayService extends Maishapay
 {
     /**
      * Process mobile money payment with transaction logging
@@ -125,7 +127,7 @@ class EnhancedMaishapayService extends Maishapay
      */
     public function getTransactionsByStatus(string $status): Collection
     {
-        return MaishapayTransaction::query()->where('status', strtoupper($status))->get();
+        return MaishapayTransaction::query()->where('status', mb_strtoupper($status))->get();
     }
 
     /**

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\DataTransferObjects;
 
 use InvalidArgumentException;
 
-class CardPayment
+final class CardPayment
 {
     public function __construct(
         public string $amount,
@@ -73,24 +75,6 @@ class CardPayment
         );
     }
 
-    private function validateProvider(string $provider): void
-    {
-        $validProviders = config('maishapay.card_providers', ['VISA', 'MASTERCARD', 'AMERICAN EXPRESS']);
-
-        if (! in_array($provider, $validProviders)) {
-            throw new InvalidArgumentException("Invalid card provider: $provider");
-        }
-    }
-
-    private function validateCurrency(string $currency): void
-    {
-        $validCurrencies = config('maishapay.currencies', ['CDF', 'USD', 'EUR', 'XAF', 'XOF']);
-
-        if (! in_array($currency, $validCurrencies)) {
-            throw new InvalidArgumentException("Invalid currency: $currency");
-        }
-    }
-
     public function toArray(): array
     {
         return array_filter([
@@ -107,5 +91,23 @@ class CardPayment
             'transaction_reference' => $this->transactionReference,
             'callback_url' => $this->callbackUrl,
         ], fn ($value) => $value !== null);
+    }
+
+    private function validateProvider(string $provider): void
+    {
+        $validProviders = config('maishapay.card_providers', ['VISA', 'MASTERCARD', 'AMERICAN EXPRESS']);
+
+        if (! in_array($provider, $validProviders)) {
+            throw new InvalidArgumentException("Invalid card provider: $provider");
+        }
+    }
+
+    private function validateCurrency(string $currency): void
+    {
+        $validCurrencies = config('maishapay.currencies', ['CDF', 'USD', 'EUR', 'XAF', 'XOF']);
+
+        if (! in_array($currency, $validCurrencies)) {
+            throw new InvalidArgumentException("Invalid currency: $currency");
+        }
     }
 }

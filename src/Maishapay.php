@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay;
 
 use Illuminate\Http\Client\Response;
@@ -11,13 +13,13 @@ use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
 
 class Maishapay
 {
-    protected string $publicKey;
+    private string $publicKey;
 
-    protected string $secretKey;
+    private string $secretKey;
 
-    protected int $gatewayMode;
+    private int $gatewayMode;
 
-    protected string $baseUrl;
+    private string $baseUrl;
 
     public function __construct(
         string $publicKey,
@@ -119,30 +121,11 @@ class Maishapay
     }
 
     /**
-     * Make HTTP request to MaishaPay API
-     */
-    protected function makeRequest(string $endpoint, array $payload, array $headers = []): Response
-    {
-        $response = Http::withHeaders($headers)
-            ->timeout(30)
-            ->post($this->baseUrl.$endpoint, $payload);
-
-        if ($response->failed()) {
-            throw new MaishapayException(
-                'MaishaPay API request failed: '.$response->body(),
-                $response->status()
-            );
-        }
-
-        return $response;
-    }
-
-    /**
      * Generate unique transaction reference
      */
     public function generateTransactionReference(): string
     {
-        return 'MP_'.strtoupper(Str::random(10)).'_'.time();
+        return 'MP_'.mb_strtoupper(Str::random(10)).'_'.time();
     }
 
     /**
@@ -156,5 +139,24 @@ class Maishapay
             'publicApiKey' => $this->publicKey,
             'secretApiKey' => $this->secretKey,
         ]);
+    }
+
+    /**
+     * Make HTTP request to MaishaPay API
+     */
+    private function makeRequest(string $endpoint, array $payload, array $headers = []): Response
+    {
+        $response = Http::withHeaders($headers)
+            ->timeout(30)
+            ->post($this->baseUrl.$endpoint, $payload);
+
+        if ($response->failed()) {
+            throw new MaishapayException(
+                'MaishaPay API request failed: '.$response->body(),
+                $response->status()
+            );
+        }
+
+        return $response;
     }
 }

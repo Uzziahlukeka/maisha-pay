@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -7,7 +9,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
-class TransactionStatusUpdated
+final class TransactionStatusUpdated
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
