@@ -144,7 +144,7 @@ it('can use facade', function () {
         'currency' => 'USD',
         'customer_full_name' => 'Jane Doe',
         'customer_email_address' => 'jane@example.com',
-        'provider' => 'MTN',
+        'provider' => 'VODACOM',
         'wallet_id' => '+243991234567',
     ]);
 
