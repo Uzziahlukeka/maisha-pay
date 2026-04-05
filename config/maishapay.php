@@ -65,7 +65,6 @@ return [
     'mobile_money_providers' => [
         'AIRTEL',
         'ORANGE',
-        'MTN',
         'VODACOM',
     ],
 
