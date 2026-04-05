@@ -38,6 +38,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | B2C Base URL
+    |--------------------------------------------------------------------------
+    |
+    | The base URL for MaishaPay B2C (Business to Customer) disbursement API.
+    | This is a separate endpoint from the collection API.
+    |
+    */
+    'b2c_base_url' => env('MAISHAPAY_B2C_BASE_URL', 'https://marchand.maishapay.online/api/b2c'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Callback URL
     |--------------------------------------------------------------------------
     |

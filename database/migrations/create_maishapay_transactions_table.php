@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('maishapay_transactions', function (Blueprint $table) {
             $table->id();
             $table->string('transaction_reference')->unique()->nullable();
-            $table->enum('payment_type', ['MOBILEMONEY', 'CARD']);
+            $table->enum('payment_type', ['MOBILEMONEY', 'CARD', 'B2C']);
             $table->string('provider');
             $table->decimal('amount', 10, 2);
             $table->string('currency', 3);
@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('customer_address')->nullable();
             $table->string('customer_city')->nullable();
             $table->string('wallet_id')->nullable();
+            $table->string('motif')->nullable();
             $table->string('callback_url')->nullable();
             $table->enum('status', ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'])->default('PENDING');
             $table->json('api_response')->nullable();

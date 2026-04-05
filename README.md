@@ -48,8 +48,22 @@ return [
     'public_key' => env('MAISHAPAY_PUBLIC_KEY'),
     'secret_key' => env('MAISHAPAY_SECRET_KEY'),
     'gateway_mode' => env('MAISHAPAY_GATEWAY_MODE', 0),
+    'base_url' => env('MAISHAPAY_BASE_URL', 'https://marchand.maishapay.online/api/collect'),
+    'b2c_base_url' => env('MAISHAPAY_B2C_BASE_URL', 'https://marchand.maishapay.online/api/b2c'),
+    'callback_url' => env('MAISHAPAY_CALLBACK_URL'),
 
 ];
+```
+
+Add these to your `.env` file:
+
+```env
+MAISHAPAY_PUBLIC_KEY=your-public-key
+MAISHAPAY_SECRET_KEY=your-secret-key
+MAISHAPAY_GATEWAY_MODE=0
+MAISHAPAY_CALLBACK_URL=https://yourapp.com/maishapay/callback
+# Optional: only needed if the B2C base URL changes
+# MAISHAPAY_B2C_BASE_URL=https://marchand.maishapay.online/api/b2c
 ```
 
 
@@ -281,6 +295,126 @@ use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
             
             //make sure to redirect to the payment page : 
 
+```
+
+## Usage B2C (Business to Customer) Payment
+
+B2C allows your business to send money directly to a customer's mobile money wallet — useful for payouts, refunds, salaries, or commissions.
+
+```php
+use Uzhlaravel\Maishapay\Maishapay;
+use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
+use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
+
+// Inject via constructor or resolve from container
+public function __construct(Maishapay $maishapay)
+{
+    $this->maishapay = $maishapay;
+}
+
+// Validate request
+$validatedData = $request->validate([
+    'amount'                => 'required|numeric',
+    'currency'              => 'required|string',
+    'customer_full_name'    => 'required|string',
+    'customer_email'        => 'required|email',
+    'provider'              => 'required|string',   // AIRTEL, ORANGE, MTN, VODACOM
+    'wallet_id'             => 'required|string',   // recipient phone / wallet number
+    'motif'                 => 'required|string',   // reason for the transfer
+]);
+
+$b2c = new BusinessToCustomer(
+    amount:               $validatedData['amount'],
+    currency:             $validatedData['currency'],
+    customerFullName:     $validatedData['customer_full_name'],
+    customerEmailAddress: $validatedData['customer_email'],
+    provider:             $validatedData['provider'],
+    walletId:             $validatedData['wallet_id'],
+    motif:                $validatedData['motif'],
+    callbackUrl:          route('your-callback-route') // optional
+);
+
+try {
+    $response = $this->maishapay->processB2CPayment($b2c);
+    $responseData = $response->json();
+    // handle success
+} catch (MaishapayException $e) {
+    // handle error
+}
+```
+
+### B2C with automatic database logging
+
+```php
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
+use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
+use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
+
+public function __construct(private EnhancedMaishapayService $enhancedMaishapayService)
+{
+}
+
+$b2c = new BusinessToCustomer(
+    amount:               '5000',
+    currency:             'CDF',
+    customerFullName:     'Jane Doe',
+    customerEmailAddress: 'jane@example.com',
+    provider:             'AIRTEL',
+    walletId:             '0999000000',
+    motif:                'Monthly commission payout',
+);
+
+$result = $this->enhancedMaishapayService->processB2CPaymentWithLogging($b2c);
+
+if ($result['success']) {
+    $transaction = $result['transaction']; // MaishapayTransaction model
+    $apiResponse  = $result['response'];
+} else {
+    $error = $result['error'];
+}
+```
+
+### B2C using the static create() helper
+
+```php
+$b2c = BusinessToCustomer::create([
+    'amount'                => '5000',
+    'currency'              => 'CDF',
+    'customer_full_name'    => 'Jane Doe',
+    'customer_email_address'=> 'jane@example.com',
+    'provider'              => 'MTN',
+    'wallet_id'             => '0810000000',
+    'motif'                 => 'Refund for order #1234',
+    'callback_url'          => 'https://yourapp.com/maishapay/callback', // optional
+]);
+
+$response = $this->maishapay->processB2CPayment($b2c);
+```
+
+### B2C database migration
+
+Run the additional migration to support B2C transactions:
+
+```bash
+php artisan vendor:publish --tag="maishapay-migrations"
+php artisan migrate
+```
+
+This adds:
+- A `motif` column to `maishapay_transactions`
+- `B2C` as a valid `payment_type` enum value
+
+### Querying B2C transactions
+
+```php
+use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
+
+// All B2C transactions
+$b2cTransactions = MaishapayTransaction::b2c()->get();
+
+// B2C stats via EnhancedMaishapayService
+$stats = $this->enhancedMaishapayService->getTransactionStats();
+// $stats['b2c'] => total B2C transaction count
 ```
 
 ## Testing

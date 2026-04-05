@@ -22,8 +22,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $customer_address
  * @property string $customer_city
  * @property string $wallet_id
+ * @property string $motif
  * @property string $callback_url
- * @property string $status // Add this line
+ * @property string $status
  * @property array $api_response
  * @property array $callback_data
  * @property Carbon $processed_at
@@ -46,6 +47,7 @@ final class MaishapayTransaction extends Model
         'customer_address',
         'customer_city',
         'wallet_id',
+        'motif',
         'callback_url',
         'status',
         'api_response',
@@ -84,6 +86,11 @@ final class MaishapayTransaction extends Model
     public function scopeCard(Builder $query): Builder
     {
         return $query->where('payment_type', 'CARD');
+    }
+
+    public function scopeB2c(Builder $query): Builder
+    {
+        return $query->where('payment_type', 'B2C');
     }
 
     public function scopeByProvider(Builder $query, string $provider): Builder
