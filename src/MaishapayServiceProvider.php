@@ -20,10 +20,10 @@ final class MaishapayServiceProvider extends ServiceProvider
 
         // Register the Maishapay service
         $this->app->singleton(EnhancedMaishapayService::class, function ($app) {
-            return new Maishapay(
+            return new EnhancedMaishapayService(
                 config('maishapay.public_key'),
                 config('maishapay.secret_key'),
-                config('maishapay.gateway_mode', 0),
+                (int) config('maishapay.gateway_mode', 0),
                 config('maishapay.base_url', 'https://marchand.maishapay.online/api/collect')
             );
         });
@@ -33,7 +33,7 @@ final class MaishapayServiceProvider extends ServiceProvider
             return new Maishapay(
                 config('maishapay.public_key'),
                 config('maishapay.secret_key'),
-                config('maishapay.gateway_mode', 0),
+                (int) config('maishapay.gateway_mode', 0),
                 config('maishapay.base_url', 'https://marchand.maishapay.online/api/collect')
             );
         });
