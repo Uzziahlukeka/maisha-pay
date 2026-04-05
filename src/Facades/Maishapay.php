@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Facades;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Facade;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
+use Uzhlaravel\Maishapay\MaishapayService;
 
 /**
  * @method static Response processMobileMoneyPayment(MobileMoney $mobileMoney)
@@ -14,9 +17,9 @@ use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
  * @method static Response verifyTransaction(string $transactionReference)
  * @method static string generateTransactionReference()
  *
- * @see \Uzhlaravel\Maishapay\MaishapayService
+ * @see MaishapayService
  */
-class Maishapay extends Facade
+final class Maishapay extends Facade
 {
     protected static function getFacadeAccessor(): string
     {

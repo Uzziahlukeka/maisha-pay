@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -23,11 +26,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $status // Add this line
  * @property array $api_response
  * @property array $callback_data
- * @property \Carbon\Carbon $processed_at
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $processed_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
-class MaishapayTransaction extends Model
+final class MaishapayTransaction extends Model
 {
     protected $fillable = [
         'transaction_reference',

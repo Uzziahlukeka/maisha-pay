@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 
-class MaishapayCommand extends Command
+final class MaishapayCommand extends Command
 {
     public $signature = 'maishapay:install {--force : Force overwrite existing files}';
 
@@ -107,7 +110,7 @@ class MaishapayCommand extends Command
 
             $this->info('Opening GitHub repository in your browser...');
             $this->comment('Don\'t forget to click that ⭐ star button!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->warn('Could not automatically open browser. Please visit:');
             $this->line($githubUrl);
         }

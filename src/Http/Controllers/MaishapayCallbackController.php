@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Http\Controllers;
 
 use Exception;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Uzhlaravel\Maishapay\Events\TransactionStatusUpdated;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
-class MaishapayCallbackController extends Controller
+final class MaishapayCallbackController extends Controller
 {
     /**
      * Handle MaishaPay callback notification
@@ -47,7 +49,7 @@ class MaishapayCallbackController extends Controller
             // Update transaction based on status
             $status = $data['status'] ?? $data['paymentStatus'] ?? 'UNKNOWN';
 
-            switch (strtoupper($status)) {
+            switch (mb_strtoupper($status)) {
                 case 'SUCCESS':
                 case 'SUCCESSFUL':
                 case 'COMPLETED':

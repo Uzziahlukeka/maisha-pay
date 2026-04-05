@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\Exceptions;
 
 use Exception;
 
-class MaishapayException extends Exception
+final class MaishapayException extends Exception
 {
     public function __construct(string $message = '', int $code = 0, ?Exception $previous = null)
     {

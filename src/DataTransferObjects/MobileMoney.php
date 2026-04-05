@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Uzhlaravel\Maishapay\DataTransferObjects;
 
 use InvalidArgumentException;
 
-class MobileMoney
+final class MobileMoney
 {
     public function __construct(
         public string $amount,
@@ -34,6 +36,20 @@ class MobileMoney
         );
     }
 
+    public function toArray(): array
+    {
+        return [
+            'amount' => $this->amount,
+            'currency' => $this->currency,
+            'customer_full_name' => $this->customerFullName,
+            'customer_email_address' => $this->customerEmailAddress,
+            'provider' => $this->provider,
+            'wallet_id' => $this->walletId,
+            'transaction_reference' => $this->transactionReference,
+            'callback_url' => $this->callbackUrl,
+        ];
+    }
+
     private function validateProvider(string $provider): void
     {
         $validProviders = config('maishapay.mobile_money_providers', ['AIRTEL', 'ORANGE', 'MTN']);
@@ -50,19 +66,5 @@ class MobileMoney
         if (! in_array($currency, $validCurrencies)) {
             throw new InvalidArgumentException("Invalid currency: $currency");
         }
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'amount' => $this->amount,
-            'currency' => $this->currency,
-            'customer_full_name' => $this->customerFullName,
-            'customer_email_address' => $this->customerEmailAddress,
-            'provider' => $this->provider,
-            'wallet_id' => $this->walletId,
-            'transaction_reference' => $this->transactionReference,
-            'callback_url' => $this->callbackUrl,
-        ];
     }
 }

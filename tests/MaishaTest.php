@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Support\Facades\Http;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
+use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
 beforeEach(function () {
@@ -76,7 +79,7 @@ it('can process mobile money payment', function () {
         ]),
     ]);
 
-    $service = new \Uzhlaravel\Maishapay\Maishapay($this->publicKey, $this->secretKey, 0);
+    $service = new Maishapay($this->publicKey, $this->secretKey, 0);
 
     $mobileMoney = MobileMoney::create([
         'amount' => '1000',
@@ -145,14 +148,14 @@ it('can use facade', function () {
         'wallet_id' => '+243991234567',
     ]);
 
-    $maisha = new Uzhlaravel\Maishapay\Maishapay($this->publicKey, $this->secretKey);
+    $maisha = new Maishapay($this->publicKey, $this->secretKey);
     $response = $maisha->processMobileMoneyPayment($mobileMoney);
 
     expect($response->successful())->toBe(true);
 });
 
 it('generates unique transaction reference', function () {
-    $service = new \Uzhlaravel\Maishapay\Maishapay($this->publicKey, $this->secretKey);
+    $service = new Maishapay($this->publicKey, $this->secretKey);
 
     $ref1 = $service->generateTransactionReference();
     $ref2 = $service->generateTransactionReference();
