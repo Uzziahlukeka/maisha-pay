@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Uzhlaravel\Maishapay\Services;
 
 use Illuminate\Database\Eloquent\Collection;
+use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
@@ -115,6 +116,52 @@ final class EnhancedMaishapayService extends Maishapay
     }
 
     /**
+     * Process B2C payment with transaction logging
+     */
+    public function processB2CPaymentWithLogging(BusinessToCustomer $b2c): array
+    {
+        $transactionReference = $b2c->transactionReference ?: $this->generateTransactionReference();
+
+        $transaction = MaishapayTransaction::query()->create([
+            'transaction_reference' => $transactionReference,
+            'payment_type' => 'B2C',
+            'provider' => $b2c->provider,
+            'amount' => $b2c->amount,
+            'currency' => $b2c->currency,
+            'customer_full_name' => $b2c->customerFullName,
+            'customer_email' => $b2c->customerEmailAddress,
+            'wallet_id' => $b2c->walletId,
+            'motif' => $b2c->motif,
+            'callback_url' => $b2c->callbackUrl ?: config('maishapay.callback_url'),
+            'status' => 'PENDING',
+        ]);
+
+        try {
+            $b2c->transactionReference = $transactionReference;
+            $response = $this->processB2CPayment($b2c);
+
+            $transaction->update([
+                'api_response' => $response->json(),
+            ]);
+
+            return [
+                'success' => true,
+                'transaction' => $transaction,
+                'response' => $response->json(),
+            ];
+
+        } catch (MaishapayException $e) {
+            $transaction->markAsFailed(['error' => $e->getMessage()]);
+
+            return [
+                'success' => false,
+                'transaction' => $transaction,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Get transaction by reference
      */
     public function getTransaction(string $transactionReference): ?MaishapayTransaction
@@ -150,6 +197,7 @@ final class EnhancedMaishapayService extends Maishapay
             'failed' => MaishapayTransaction::failed()->count(),
             'mobile_money' => MaishapayTransaction::mobileMoney()->count(),
             'card' => MaishapayTransaction::card()->count(),
+            'b2c' => MaishapayTransaction::b2c()->count(),
         ];
     }
 }
