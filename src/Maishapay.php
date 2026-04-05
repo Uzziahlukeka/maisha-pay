@@ -7,6 +7,7 @@ namespace Uzhlaravel\Maishapay;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
@@ -21,16 +22,20 @@ class Maishapay
 
     private string $baseUrl;
 
+    private string $b2cBaseUrl;
+
     public function __construct(
         string $publicKey,
         string $secretKey,
         int $gatewayMode = 0,
-        string $baseUrl = 'https://marchand.maishapay.online/api/collect'
+        string $baseUrl = 'https://marchand.maishapay.online/api/collect',
+        string $b2cBaseUrl = 'https://marchand.maishapay.online/api/b2c'
     ) {
         $this->publicKey = $publicKey;
         $this->secretKey = $secretKey;
         $this->gatewayMode = $gatewayMode;
         $this->baseUrl = $baseUrl;
+        $this->b2cBaseUrl = $b2cBaseUrl;
     }
 
     /**
@@ -121,6 +126,33 @@ class Maishapay
     }
 
     /**
+     * Process B2C (Business to Customer) disbursement via mobile money
+     */
+    public function processB2CPayment(BusinessToCustomer $b2c): Response
+    {
+        $payload = [
+            'transactionReference' => $b2c->transactionReference ?: $this->generateTransactionReference(),
+            'gatewayMode' => $this->gatewayMode,
+            'publicApiKey' => $this->publicKey,
+            'secretApiKey' => $this->secretKey,
+            'order' => [
+                'motif' => $b2c->motif,
+                'amount' => $b2c->amount,
+                'currency' => $b2c->currency,
+                'customerFullName' => $b2c->customerFullName,
+                'customerEmailAdress' => $b2c->customerEmailAddress,
+            ],
+            'paymentChannel' => [
+                'provider' => $b2c->provider,
+                'walletID' => $b2c->walletId,
+                'callbackUrl' => $b2c->callbackUrl ?: config('maishapay.callback_url'),
+            ],
+        ];
+
+        return $this->makeB2CRequest('/store/transfert/mobilemoney', $payload);
+    }
+
+    /**
      * Generate unique transaction reference
      */
     public function generateTransactionReference(): string
@@ -142,7 +174,7 @@ class Maishapay
     }
 
     /**
-     * Make HTTP request to MaishaPay API
+     * Make HTTP request to MaishaPay collection API
      */
     private function makeRequest(string $endpoint, array $payload, array $headers = []): Response
     {
@@ -153,6 +185,27 @@ class Maishapay
         if ($response->failed()) {
             throw new MaishapayException(
                 'MaishaPay API request failed: '.$response->body(),
+                $response->status()
+            );
+        }
+
+        return $response;
+    }
+
+    /**
+     * Make HTTP request to MaishaPay B2C API
+     */
+    private function makeB2CRequest(string $endpoint, array $payload, array $headers = []): Response
+    {
+        $b2cBaseUrl = config('maishapay.b2c_base_url', $this->b2cBaseUrl);
+
+        $response = Http::withHeaders($headers)
+            ->timeout(30)
+            ->post($b2cBaseUrl.$endpoint, $payload);
+
+        if ($response->failed()) {
+            throw new MaishapayException(
+                'MaishaPay B2C API request failed: '.$response->body(),
                 $response->status()
             );
         }
