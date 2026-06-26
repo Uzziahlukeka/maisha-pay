@@ -15,7 +15,7 @@ beforeEach(function () {
 
 it('can create mobile money DTO', function () {
     $mobileMoney = MobileMoney::create([
-        'amount' => '1000',
+        'amount' => 1000,
         'currency' => 'CDF',
         'customer_full_name' => 'John Doe',
         'customer_email_address' => 'john@example.com',
@@ -23,14 +23,14 @@ it('can create mobile money DTO', function () {
         'wallet_id' => '+243991234567',
     ]);
 
-    expect($mobileMoney->amount)->toBe('1000')
+    expect($mobileMoney->amount)->toBe(1000.0)
         ->and($mobileMoney->currency)->toBe('CDF')
         ->and($mobileMoney->provider)->toBe('AIRTEL');
 });
 
 it('validates mobile money provider', function () {
     expect(fn () => MobileMoney::create([
-        'amount' => '1000',
+        'amount' => 1000.0,
         'currency' => 'CDF',
         'customer_full_name' => 'John Doe',
         'customer_email_address' => 'john@example.com',
@@ -41,7 +41,7 @@ it('validates mobile money provider', function () {
 
 it('can create card payment DTO for v2', function () {
     $cardPayment = CardPayment::createForV2([
-        'amount' => '100',
+        'amount' => 100.0,
         'currency' => 'USD',
         'customer_full_name' => 'John Doe',
         'customer_email_address' => 'john@example.com',
@@ -49,14 +49,14 @@ it('can create card payment DTO for v2', function () {
         'provider' => 'VISA',
     ]);
 
-    expect($cardPayment->amount)->toBe('100')
+    expect($cardPayment->amount)->toBe(100.0)
         ->and($cardPayment->currency)->toBe('USD')
         ->and($cardPayment->provider)->toBe('VISA');
 });
 
 it('can create card payment DTO for v3', function () {
     $cardPayment = CardPayment::createForV3([
-        'amount' => '100',
+        'amount' => 100.0,
         'currency' => 'USD',
         'customer_firstname' => 'John',
         'customer_lastname' => 'Doe',
@@ -82,7 +82,7 @@ it('can process mobile money payment', function () {
     $service = new Maishapay($this->publicKey, $this->secretKey, 0);
 
     $mobileMoney = MobileMoney::create([
-        'amount' => '1000',
+        'amount' => 1000.0,
         'currency' => 'CDF',
         'customer_full_name' => 'John Doe',
         'customer_email_address' => 'john@example.com',
@@ -140,7 +140,7 @@ it('can use facade', function () {
     ]);
 
     $mobileMoney = MobileMoney::create([
-        'amount' => '500',
+        'amount' => 500,
         'currency' => 'USD',
         'customer_full_name' => 'Jane Doe',
         'customer_email_address' => 'jane@example.com',

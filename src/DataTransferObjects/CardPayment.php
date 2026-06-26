@@ -9,7 +9,7 @@ use InvalidArgumentException;
 final class CardPayment
 {
     public function __construct(
-        public string $amount,
+        public float $amount,
         public string $currency,
         public string $customerEmailAddress,
         public string $customerPhoneNumber,

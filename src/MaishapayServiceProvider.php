@@ -18,7 +18,6 @@ final class MaishapayServiceProvider extends ServiceProvider
             'maishapay'
         );
 
-        // Register the Maishapay service
         $this->app->singleton(EnhancedMaishapayService::class, function ($app) {
             return new EnhancedMaishapayService(
                 config('maishapay.public_key'),
