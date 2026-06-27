@@ -14,7 +14,11 @@ use Uzhlaravel\Maishapay\MaishapayService;
  * @method static Response processMobileMoneyPayment(MobileMoney $mobileMoney)
  * @method static Response processCardPayment(CardPayment $cardPayment)
  * @method static Response processEnhancedCardPayment(CardPayment $cardPayment)
+ * @method static Response checkTransactionStatus(string $transactionReference)
+ * @method static Response checkTransactionById(string|int $transactionId)
  * @method static Response verifyTransaction(string $transactionReference)
+ * @method static string extractStatus(array $payload)
+ * @method static string normalizeStatus(string $status)
  * @method static string generateTransactionReference()
  *
  * @see MaishapayService

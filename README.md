@@ -366,13 +366,23 @@ $b2c = new BusinessToCustomer(
 
 $result = $this->enhancedMaishapayService->processB2CPaymentWithLogging($b2c);
 
+// Unlike collection, a B2C transfer resolves synchronously: the API returns
+// the final status (SUCCESS or FAILED) in the same response, and the logged
+// transaction is updated accordingly straight away.
 if ($result['success']) {
-    $transaction = $result['transaction']; // MaishapayTransaction model
+    $transaction = $result['transaction']; // MaishapayTransaction model (SUCCESS)
     $apiResponse  = $result['response'];
 } else {
-    $error = $result['error'];
+    // $result['status'] is FAILED when the operator declined the transfer,
+    // or $result['error'] is set when the request itself could not be sent.
+    $status = $result['status'] ?? null;
+    $error  = $result['error'] ?? null;
 }
 ```
+
+> **Note:** For B2C, `motif`, `customer_full_name` and `customer_email_address`
+> are optional (the MaishaPay API marks them as not required). `amount`,
+> `currency`, `provider` and `wallet_id` remain required.
 
 ### B2C using the static create() helper
 
@@ -380,12 +390,13 @@ if ($result['success']) {
 $b2c = BusinessToCustomer::create([
     'amount'                => '5000',
     'currency'              => 'CDF',
-    'customer_full_name'    => 'Jane Doe',
-    'customer_email_address'=> 'jane@example.com',
     'provider'              => 'MTN',
     'wallet_id'             => '0810000000',
+    // The following are all optional for B2C:
+    'customer_full_name'    => 'Jane Doe',
+    'customer_email_address'=> 'jane@example.com',
     'motif'                 => 'Refund for order #1234',
-    'callback_url'          => 'https://yourapp.com/maishapay/callback', // optional
+    'callback_url'          => 'https://yourapp.com/maishapay/callback',
 ]);
 
 $response = $this->maishapay->processB2CPayment($b2c);
@@ -416,6 +427,81 @@ $b2cTransactions = MaishapayTransaction::b2c()->get();
 $stats = $this->enhancedMaishapayService->getTransactionStats();
 // $stats['b2c'] => total B2C transaction count
 ```
+
+## Checking transaction status from MaishaPay's servers
+
+Instead of trusting the status stored in your local database, you can query the
+**live** status of a transaction directly from MaishaPay's **Transaction Lookup**
+API. This is useful when a callback was missed, delayed, or you simply want to
+confirm the real state before fulfilling an order. It works for any transaction
+type — Mobile Money, card, or B2C.
+
+The lookup runs against MaishaPay's dedicated transaction endpoint
+(`https://marchand.maishapay.online/api/transaction/rest/v2/check`) and supports
+two modes:
+
+- **By merchant reference** — your own `transactionReference` (sent with
+  `?useRef=1`). This is the default.
+- **By MaishaPay transaction ID** — the numeric ID MaishaPay returns in the
+  initial payment response.
+
+### Quick status check (raw response)
+
+```php
+use Uzhlaravel\Maishapay\Facades\Maishapay;
+
+// By your merchant reference (returns the raw Illuminate HTTP Response)
+$response = Maishapay::checkTransactionStatus('MP_ABC123_1700000000');
+
+// ...or by the MaishaPay transaction ID
+$response = Maishapay::checkTransactionById(12345);
+
+$status = $response->json('transactionStatus'); // e.g. "SUCCESS", "PENDING", "FAILED"
+```
+
+### Canonical status via EnhancedMaishapayService
+
+```php
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
+
+$service = app(EnhancedMaishapayService::class);
+
+// Live status from the endpoint, normalized to PENDING|SUCCESS|FAILED|CANCELLED
+$status = $service->getTransactionStatus('MP_ABC123_1700000000');
+
+// Or get the status plus the raw payload
+['status' => $status, 'response' => $payload] =
+    $service->fetchTransactionStatus('MP_ABC123_1700000000');
+```
+
+### Refresh the local record from the server
+
+`refreshTransactionStatus()` queries MaishaPay, syncs the matching local
+`MaishapayTransaction` record (so the database acts as a cache), and fires the
+`TransactionStatusUpdated` event when the status changes:
+
+```php
+$transaction = $service->refreshTransactionStatus('MP_ABC123_1700000000');
+
+if ($transaction?->isSuccessful()) {
+    // fulfil the order
+}
+```
+
+### Configuration
+
+The Transaction Lookup base URL and endpoint are configurable:
+
+| Config key | Env var | Default |
+| --- | --- | --- |
+| `transaction_base_url` | `MAISHAPAY_TRANSACTION_BASE_URL` | `https://marchand.maishapay.online/api/transaction` |
+| `status_endpoint` | `MAISHAPAY_STATUS_ENDPOINT` | `/rest/v2/check` |
+
+The lookup posts `gatewayMode`, `publicApiKey`, `secretApiKey` and
+`transactionId` (set to your merchant reference, with `?useRef=1`, when looking
+up by reference). The canonical status is read from MaishaPay's
+`transactionStatus` field and normalized to `PENDING`, `SUCCESS`, `FAILED` or
+`CANCELLED`.
 
 ## Testing
 

@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
+use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
 
 beforeEach(function () {
     $this->publicKey = 'MP-SBPK-test123';
@@ -163,6 +165,183 @@ it('generates unique transaction reference', function () {
     expect($ref1)->toStartWith('MP_')
         ->and($ref2)->toStartWith('MP_')
         ->and($ref1)->not->toBe($ref2);
+});
+
+it('can check transaction status from the lookup endpoint by merchant reference', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'transaction_type' => 'C2B | Collect',
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'transactionId' => 12345,
+            'originatingTransactionId' => 'MP_TEST123',
+        ]),
+    ]);
+
+    $service = new Maishapay($this->publicKey, $this->secretKey, 0);
+
+    $response = $service->checkTransactionStatus('MP_TEST123');
+
+    expect($response->successful())->toBe(true)
+        ->and($response->json('transactionStatus'))->toBe('SUCCESS');
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/api/transaction/rest/v2/check')
+            && str_contains($request->url(), 'useRef=1')
+            && $request['transactionId'] === 'MP_TEST123'
+            && $request['publicApiKey'] === $this->publicKey;
+    });
+});
+
+it('can look up a transaction by maishapay id', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'transactionId' => 12345,
+        ]),
+    ]);
+
+    $service = new Maishapay($this->publicKey, $this->secretKey, 0);
+
+    $response = $service->checkTransactionById(12345);
+
+    expect($response->successful())->toBe(true);
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/api/transaction/rest/v2/check')
+            && ! str_contains($request->url(), 'useRef=1')
+            && $request['transactionId'] === 12345;
+    });
+});
+
+it('normalizes maishapay statuses onto canonical values', function () {
+    $service = new Maishapay($this->publicKey, $this->secretKey);
+
+    expect($service->normalizeStatus('successful'))->toBe('SUCCESS')
+        ->and($service->normalizeStatus('DECLINED'))->toBe('FAILED')
+        ->and($service->normalizeStatus('Canceled'))->toBe('CANCELLED')
+        ->and($service->normalizeStatus('whatever'))->toBe('PENDING')
+        ->and($service->extractStatus(['transactionStatus' => 'FAILED']))->toBe('FAILED');
+});
+
+it('refreshes transaction status from the server and syncs the database', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'originatingTransactionId' => 'TEST_REF_SYNC',
+        ]),
+    ]);
+
+    MaishapayTransaction::create([
+        'transaction_reference' => 'TEST_REF_SYNC',
+        'payment_type' => 'MOBILEMONEY',
+        'provider' => 'AIRTEL',
+        'amount' => 1000,
+        'currency' => 'CDF',
+        'customer_email' => 'john@example.com',
+        'status' => 'PENDING',
+    ]);
+
+    $service = new EnhancedMaishapayService(
+        $this->publicKey,
+        $this->secretKey,
+        0
+    );
+
+    expect($service->getTransactionStatus('TEST_REF_SYNC'))->toBe('SUCCESS');
+
+    $transaction = $service->refreshTransactionStatus('TEST_REF_SYNC');
+
+    expect($transaction)->not->toBeNull()
+        ->and($transaction->isSuccessful())->toBe(true)
+        ->and($transaction->processed_at)->not->toBeNull();
+});
+
+it('returns null when refreshing an unknown transaction', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response(['status' => 'SUCCESS']),
+    ]);
+
+    $service = new EnhancedMaishapayService(
+        $this->publicKey,
+        $this->secretKey,
+        0
+    );
+
+    expect($service->refreshTransactionStatus('DOES_NOT_EXIST'))->toBeNull();
+});
+
+it('can create a B2C DTO with only the required fields', function () {
+    $b2c = BusinessToCustomer::create([
+        'amount' => 20000,
+        'currency' => 'CDF',
+        'provider' => 'AIRTEL',
+        'wallet_id' => '+243990000000',
+    ]);
+
+    expect($b2c->amount)->toBe(20000.0)
+        ->and($b2c->provider)->toBe('AIRTEL')
+        ->and($b2c->motif)->toBeNull()
+        ->and($b2c->customerFullName)->toBeNull()
+        ->and($b2c->customerEmailAddress)->toBeNull();
+});
+
+it('marks a B2C transaction successful from the synchronous response', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'transactionId' => 1234,
+            'originatingTransactionId' => 'B2C_REF_OK',
+        ]),
+    ]);
+
+    $service = new EnhancedMaishapayService($this->publicKey, $this->secretKey, 0);
+
+    $b2c = BusinessToCustomer::create([
+        'amount' => 20000,
+        'currency' => 'CDF',
+        'provider' => 'AIRTEL',
+        'wallet_id' => '+243990000000',
+        'motif' => 'Refund',
+        'transaction_reference' => 'B2C_REF_OK',
+    ]);
+
+    $result = $service->processB2CPaymentWithLogging($b2c);
+
+    expect($result['success'])->toBe(true)
+        ->and($result['status'])->toBe('SUCCESS')
+        ->and($result['transaction']->isSuccessful())->toBe(true)
+        ->and($result['transaction']->processed_at)->not->toBeNull();
+});
+
+it('marks a B2C transaction failed when the operator declines with a 400 body', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 400,
+            'transactionStatus' => 'FAILED',
+            'transactionId' => 12345,
+            'originatingTransactionId' => 'B2C_REF_KO',
+        ], 400),
+    ]);
+
+    $service = new EnhancedMaishapayService($this->publicKey, $this->secretKey, 0);
+
+    $b2c = BusinessToCustomer::create([
+        'amount' => 20000,
+        'currency' => 'CDF',
+        'provider' => 'AIRTEL',
+        'wallet_id' => '+243990000000',
+        'transaction_reference' => 'B2C_REF_KO',
+    ]);
+
+    $result = $service->processB2CPaymentWithLogging($b2c);
+
+    expect($result['success'])->toBe(false)
+        ->and($result['status'])->toBe('FAILED')
+        ->and($result['transaction']->isFailed())->toBe(true);
 });
 
 it('throws exception', function () {

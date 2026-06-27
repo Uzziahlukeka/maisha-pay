@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
+use Uzhlaravel\Maishapay\Events\TransactionStatusUpdated;
 use Uzhlaravel\Maishapay\Exceptions\MaishapayException;
 use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
@@ -139,15 +140,33 @@ final class EnhancedMaishapayService extends Maishapay
         try {
             $b2c->transactionReference = $transactionReference;
             $response = $this->processB2CPayment($b2c);
+            $payload = $response->json() ?? [];
+
+            // Unlike collection, a B2C transfer returns its final status
+            // (SUCCESS or FAILED) synchronously, so sync the record now instead
+            // of waiting for a callback that may never arrive.
+            $status = $this->extractStatus($payload);
 
             $transaction->update([
-                'api_response' => $response->json(),
+                'api_response' => $payload,
             ]);
 
+            match ($status) {
+                'SUCCESS' => $transaction->markAsSuccessful($payload),
+                'FAILED' => $transaction->markAsFailed($payload),
+                'CANCELLED' => $transaction->markAsCancelled(),
+                default => null,
+            };
+
+            if ($status !== 'PENDING') {
+                event(new TransactionStatusUpdated($transaction->refresh(), $payload));
+            }
+
             return [
-                'success' => true,
-                'transaction' => $transaction,
-                'response' => $response->json(),
+                'success' => $status === 'SUCCESS',
+                'status' => $status,
+                'transaction' => $transaction->refresh(),
+                'response' => $payload,
             ];
 
         } catch (MaishapayException $e) {
@@ -162,11 +181,76 @@ final class EnhancedMaishapayService extends Maishapay
     }
 
     /**
-     * Get transaction by reference
+     * Get transaction by reference (from the local database).
      */
     public function getTransaction(string $transactionReference): ?MaishapayTransaction
     {
-        return MaishapayTransaction::where('transaction_reference', $transactionReference)->first();
+        return MaishapayTransaction::query()->where('transaction_reference', $transactionReference)->first();
+    }
+
+    /**
+     * Fetch the live status of a transaction directly from MaishaPay's servers.
+     *
+     * Unlike getTransaction(), this does not read the status from the database;
+     * it queries MaishaPay's status endpoint and returns the canonical status
+     * together with the raw API response.
+     *
+     * @return array{status: string, response: array}
+     */
+    public function fetchTransactionStatus(string $transactionReference): array
+    {
+        $response = $this->checkTransactionStatus($transactionReference);
+        $payload = $response->json() ?? [];
+
+        return [
+            'status' => $this->extractStatus($payload),
+            'response' => $payload,
+        ];
+    }
+
+    /**
+     * Get the canonical status of a transaction from MaishaPay's servers.
+     *
+     * This is the endpoint-backed replacement for reading the status off the
+     * local database record.
+     */
+    public function getTransactionStatus(string $transactionReference): string
+    {
+        return $this->fetchTransactionStatus($transactionReference)['status'];
+    }
+
+    /**
+     * Refresh a local transaction record from MaishaPay's servers.
+     *
+     * Queries the live status from the endpoint, syncs the local database
+     * record to match (used as a cache) and fires TransactionStatusUpdated
+     * when the status changes. Returns the updated model, or null when no
+     * matching local record exists.
+     */
+    public function refreshTransactionStatus(string $transactionReference): ?MaishapayTransaction
+    {
+        $transaction = $this->getTransaction($transactionReference);
+
+        if (! $transaction) {
+            return null;
+        }
+
+        ['status' => $status, 'response' => $payload] = $this->fetchTransactionStatus($transactionReference);
+
+        $previousStatus = $transaction->status;
+
+        match ($status) {
+            'SUCCESS' => $transaction->markAsSuccessful($payload),
+            'FAILED' => $transaction->markAsFailed($payload),
+            'CANCELLED' => $transaction->markAsCancelled(),
+            default => null,
+        };
+
+        if ($status !== $previousStatus && $status !== 'PENDING') {
+            event(new TransactionStatusUpdated($transaction->refresh(), $payload));
+        }
+
+        return $transaction->refresh();
     }
 
     /**

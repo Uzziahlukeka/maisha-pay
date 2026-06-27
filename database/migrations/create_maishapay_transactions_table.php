@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('customer_full_name')->nullable();
             $table->string('customer_firstname')->nullable();
             $table->string('customer_lastname')->nullable();
-            $table->string('customer_email');
+            $table->string('customer_email')->nullable();
             $table->string('customer_phone')->nullable();
             $table->string('customer_address')->nullable();
             $table->string('customer_city')->nullable();

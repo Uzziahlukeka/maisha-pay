@@ -25,6 +25,9 @@ return new class extends Migration
         // Extend the payment_type enum to include B2C (MySQL/MariaDB only — SQLite has no real enum)
         if (Schema::hasTable('maishapay_transactions') && DB::getDriverName() !== 'sqlite') {
             DB::statement("ALTER TABLE maishapay_transactions MODIFY COLUMN payment_type ENUM('MOBILEMONEY', 'CARD', 'B2C') NOT NULL");
+
+            // B2C beneficiaries may have no email, so allow the column to be null
+            DB::statement('ALTER TABLE maishapay_transactions MODIFY COLUMN customer_email VARCHAR(255) NULL');
         }
     }
 
