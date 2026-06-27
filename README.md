@@ -366,13 +366,23 @@ $b2c = new BusinessToCustomer(
 
 $result = $this->enhancedMaishapayService->processB2CPaymentWithLogging($b2c);
 
+// Unlike collection, a B2C transfer resolves synchronously: the API returns
+// the final status (SUCCESS or FAILED) in the same response, and the logged
+// transaction is updated accordingly straight away.
 if ($result['success']) {
-    $transaction = $result['transaction']; // MaishapayTransaction model
+    $transaction = $result['transaction']; // MaishapayTransaction model (SUCCESS)
     $apiResponse  = $result['response'];
 } else {
-    $error = $result['error'];
+    // $result['status'] is FAILED when the operator declined the transfer,
+    // or $result['error'] is set when the request itself could not be sent.
+    $status = $result['status'] ?? null;
+    $error  = $result['error'] ?? null;
 }
 ```
+
+> **Note:** For B2C, `motif`, `customer_full_name` and `customer_email_address`
+> are optional (the MaishaPay API marks them as not required). `amount`,
+> `currency`, `provider` and `wallet_id` remain required.
 
 ### B2C using the static create() helper
 
@@ -380,12 +390,13 @@ if ($result['success']) {
 $b2c = BusinessToCustomer::create([
     'amount'                => '5000',
     'currency'              => 'CDF',
-    'customer_full_name'    => 'Jane Doe',
-    'customer_email_address'=> 'jane@example.com',
     'provider'              => 'MTN',
     'wallet_id'             => '0810000000',
+    // The following are all optional for B2C:
+    'customer_full_name'    => 'Jane Doe',
+    'customer_email_address'=> 'jane@example.com',
     'motif'                 => 'Refund for order #1234',
-    'callback_url'          => 'https://yourapp.com/maishapay/callback', // optional
+    'callback_url'          => 'https://yourapp.com/maishapay/callback',
 ]);
 
 $response = $this->maishapay->processB2CPayment($b2c);

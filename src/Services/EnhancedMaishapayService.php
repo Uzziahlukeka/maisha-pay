@@ -140,15 +140,33 @@ final class EnhancedMaishapayService extends Maishapay
         try {
             $b2c->transactionReference = $transactionReference;
             $response = $this->processB2CPayment($b2c);
+            $payload = $response->json() ?? [];
+
+            // Unlike collection, a B2C transfer returns its final status
+            // (SUCCESS or FAILED) synchronously, so sync the record now instead
+            // of waiting for a callback that may never arrive.
+            $status = $this->extractStatus($payload);
 
             $transaction->update([
-                'api_response' => $response->json(),
+                'api_response' => $payload,
             ]);
 
+            match ($status) {
+                'SUCCESS' => $transaction->markAsSuccessful($payload),
+                'FAILED' => $transaction->markAsFailed($payload),
+                'CANCELLED' => $transaction->markAsCancelled(),
+                default => null,
+            };
+
+            if ($status !== 'PENDING') {
+                event(new TransactionStatusUpdated($transaction->refresh(), $payload));
+            }
+
             return [
-                'success' => true,
-                'transaction' => $transaction,
-                'response' => $response->json(),
+                'success' => $status === 'SUCCESS',
+                'status' => $status,
+                'transaction' => $transaction->refresh(),
+                'response' => $payload,
             ];
 
         } catch (MaishapayException $e) {

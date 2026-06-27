@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
+use Uzhlaravel\Maishapay\DataTransferObjects\BusinessToCustomer;
 use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Maishapay;
@@ -270,6 +271,77 @@ it('returns null when refreshing an unknown transaction', function () {
     );
 
     expect($service->refreshTransactionStatus('DOES_NOT_EXIST'))->toBeNull();
+});
+
+it('can create a B2C DTO with only the required fields', function () {
+    $b2c = BusinessToCustomer::create([
+        'amount' => 20000,
+        'currency' => 'CDF',
+        'provider' => 'AIRTEL',
+        'wallet_id' => '+243990000000',
+    ]);
+
+    expect($b2c->amount)->toBe(20000.0)
+        ->and($b2c->provider)->toBe('AIRTEL')
+        ->and($b2c->motif)->toBeNull()
+        ->and($b2c->customerFullName)->toBeNull()
+        ->and($b2c->customerEmailAddress)->toBeNull();
+});
+
+it('marks a B2C transaction successful from the synchronous response', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'transactionId' => 1234,
+            'originatingTransactionId' => 'B2C_REF_OK',
+        ]),
+    ]);
+
+    $service = new EnhancedMaishapayService($this->publicKey, $this->secretKey, 0);
+
+    $b2c = BusinessToCustomer::create([
+        'amount' => 20000,
+        'currency' => 'CDF',
+        'provider' => 'AIRTEL',
+        'wallet_id' => '+243990000000',
+        'motif' => 'Refund',
+        'transaction_reference' => 'B2C_REF_OK',
+    ]);
+
+    $result = $service->processB2CPaymentWithLogging($b2c);
+
+    expect($result['success'])->toBe(true)
+        ->and($result['status'])->toBe('SUCCESS')
+        ->and($result['transaction']->isSuccessful())->toBe(true)
+        ->and($result['transaction']->processed_at)->not->toBeNull();
+});
+
+it('marks a B2C transaction failed when the operator declines with a 400 body', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 400,
+            'transactionStatus' => 'FAILED',
+            'transactionId' => 12345,
+            'originatingTransactionId' => 'B2C_REF_KO',
+        ], 400),
+    ]);
+
+    $service = new EnhancedMaishapayService($this->publicKey, $this->secretKey, 0);
+
+    $b2c = BusinessToCustomer::create([
+        'amount' => 20000,
+        'currency' => 'CDF',
+        'provider' => 'AIRTEL',
+        'wallet_id' => '+243990000000',
+        'transaction_reference' => 'B2C_REF_KO',
+    ]);
+
+    $result = $service->processB2CPaymentWithLogging($b2c);
+
+    expect($result['success'])->toBe(false)
+        ->and($result['status'])->toBe('FAILED')
+        ->and($result['transaction']->isFailed())->toBe(true);
 });
 
 it('throws exception', function () {

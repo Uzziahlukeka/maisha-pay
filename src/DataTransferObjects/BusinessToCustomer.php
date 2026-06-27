@@ -11,11 +11,11 @@ final class BusinessToCustomer
     public function __construct(
         public float $amount,
         public string $currency,
-        public string $customerFullName,
-        public string $customerEmailAddress,
         public string $provider,
         public string $walletId,
-        public string $motif,
+        public ?string $customerFullName = null,
+        public ?string $customerEmailAddress = null,
+        public ?string $motif = null,
         public ?string $transactionReference = null,
         public ?string $callbackUrl = null
     ) {
@@ -28,11 +28,11 @@ final class BusinessToCustomer
         return new self(
             amount: $data['amount'],
             currency: $data['currency'],
-            customerFullName: $data['customer_full_name'],
-            customerEmailAddress: $data['customer_email_address'],
             provider: $data['provider'],
             walletId: $data['wallet_id'],
-            motif: $data['motif'],
+            customerFullName: $data['customer_full_name'] ?? null,
+            customerEmailAddress: $data['customer_email_address'] ?? null,
+            motif: $data['motif'] ?? null,
             transactionReference: $data['transaction_reference'] ?? null,
             callbackUrl: $data['callback_url'] ?? null
         );

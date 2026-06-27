@@ -140,11 +140,11 @@ class Maishapay
             'publicApiKey' => $this->publicKey,
             'secretApiKey' => $this->secretKey,
             'order' => [
-                'motif' => $b2c->motif,
+                'motif' => $b2c->motif ?? '',
                 'amount' => $b2c->amount,
                 'currency' => $b2c->currency,
-                'customerFullName' => $b2c->customerFullName,
-                'customerEmailAdress' => $b2c->customerEmailAddress,
+                'customerFullName' => $b2c->customerFullName ?? '',
+                'customerEmailAdress' => $b2c->customerEmailAddress ?? '',
             ],
             'paymentChannel' => [
                 'provider' => $b2c->provider,
@@ -278,7 +278,12 @@ class Maishapay
             ->timeout(30)
             ->post($b2cBaseUrl.$endpoint, $payload);
 
-        if ($response->failed()) {
+        // A B2C transfer that the operator declines comes back with an error
+        // HTTP status (e.g. 400) but a valid business body carrying
+        // transactionStatus = FAILED. That is a normal outcome, not a request
+        // failure, so we only throw when the response is not a recognisable
+        // transaction status payload (genuine transport/auth/validation error).
+        if ($response->failed() && ! $this->isTransactionStatusResponse($response)) {
             throw new MaishapayException(
                 'MaishaPay B2C API request failed: '.$response->body(),
                 $response->status()
@@ -286,6 +291,18 @@ class Maishapay
         }
 
         return $response;
+    }
+
+    /**
+     * Determine whether a response body is a MaishaPay transaction status
+     * payload (i.e. it carries a transactionStatus field) rather than a raw
+     * transport/error response.
+     */
+    private function isTransactionStatusResponse(Response $response): bool
+    {
+        $body = $response->json();
+
+        return is_array($body) && array_key_exists('transactionStatus', $body);
     }
 
     /**
