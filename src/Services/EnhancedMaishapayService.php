@@ -185,7 +185,7 @@ final class EnhancedMaishapayService extends Maishapay
      */
     public function getTransaction(string $transactionReference): ?MaishapayTransaction
     {
-        return MaishapayTransaction::where('transaction_reference', $transactionReference)->first();
+        return MaishapayTransaction::query()->where('transaction_reference', $transactionReference)->first();
     }
 
     /**
