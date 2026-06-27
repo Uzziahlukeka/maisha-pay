@@ -420,19 +420,32 @@ $stats = $this->enhancedMaishapayService->getTransactionStats();
 ## Checking transaction status from MaishaPay's servers
 
 Instead of trusting the status stored in your local database, you can query the
-**live** status of a transaction directly from MaishaPay's servers. This is
-useful when a callback was missed, delayed, or you simply want to confirm the
-real state before fulfilling an order.
+**live** status of a transaction directly from MaishaPay's **Transaction Lookup**
+API. This is useful when a callback was missed, delayed, or you simply want to
+confirm the real state before fulfilling an order. It works for any transaction
+type — Mobile Money, card, or B2C.
+
+The lookup runs against MaishaPay's dedicated transaction endpoint
+(`https://marchand.maishapay.online/api/transaction/rest/v2/check`) and supports
+two modes:
+
+- **By merchant reference** — your own `transactionReference` (sent with
+  `?useRef=1`). This is the default.
+- **By MaishaPay transaction ID** — the numeric ID MaishaPay returns in the
+  initial payment response.
 
 ### Quick status check (raw response)
 
 ```php
 use Uzhlaravel\Maishapay\Facades\Maishapay;
 
-// Returns the raw Illuminate HTTP Response from MaishaPay
+// By your merchant reference (returns the raw Illuminate HTTP Response)
 $response = Maishapay::checkTransactionStatus('MP_ABC123_1700000000');
 
-$status = $response->json('status'); // e.g. "SUCCESS"
+// ...or by the MaishaPay transaction ID
+$response = Maishapay::checkTransactionById(12345);
+
+$status = $response->json('transactionStatus'); // e.g. "SUCCESS", "PENDING", "FAILED"
 ```
 
 ### Canonical status via EnhancedMaishapayService
@@ -466,13 +479,18 @@ if ($transaction?->isSuccessful()) {
 
 ### Configuration
 
-The status endpoint is configurable. By default it posts to
-`/v2/store/status` (relative to `base_url`) with `transactionReference`,
-`gatewayMode`, `publicApiKey` and `secretApiKey`. Override the path via the
-`MAISHAPAY_STATUS_ENDPOINT` environment variable or the `status_endpoint`
-config key if your MaishaPay account exposes status checks on a different
-route. The response status is read tolerantly from `status`, `paymentStatus`,
-`transactionStatus`, `data.status` or `transaction.status`.
+The Transaction Lookup base URL and endpoint are configurable:
+
+| Config key | Env var | Default |
+| --- | --- | --- |
+| `transaction_base_url` | `MAISHAPAY_TRANSACTION_BASE_URL` | `https://marchand.maishapay.online/api/transaction` |
+| `status_endpoint` | `MAISHAPAY_STATUS_ENDPOINT` | `/rest/v2/check` |
+
+The lookup posts `gatewayMode`, `publicApiKey`, `secretApiKey` and
+`transactionId` (set to your merchant reference, with `?useRef=1`, when looking
+up by reference). The canonical status is read from MaishaPay's
+`transactionStatus` field and normalized to `PENDING`, `SUCCESS`, `FAILED` or
+`CANCELLED`.
 
 ## Testing
 

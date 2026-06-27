@@ -166,12 +166,14 @@ it('generates unique transaction reference', function () {
         ->and($ref1)->not->toBe($ref2);
 });
 
-it('can check transaction status from the endpoint', function () {
+it('can check transaction status from the lookup endpoint by merchant reference', function () {
     Http::fake([
         'marchand.maishapay.online/*' => Http::response([
-            'transactionReference' => 'MP_TEST123',
-            'status' => 'SUCCESS',
-            'description' => 'Payment completed',
+            'transaction_type' => 'C2B | Collect',
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'transactionId' => 12345,
+            'originatingTransactionId' => 'MP_TEST123',
         ]),
     ]);
 
@@ -180,12 +182,35 @@ it('can check transaction status from the endpoint', function () {
     $response = $service->checkTransactionStatus('MP_TEST123');
 
     expect($response->successful())->toBe(true)
-        ->and($response->json('status'))->toBe('SUCCESS');
+        ->and($response->json('transactionStatus'))->toBe('SUCCESS');
 
     Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/v2/store/status')
-            && $request['transactionReference'] === 'MP_TEST123'
+        return str_contains($request->url(), '/api/transaction/rest/v2/check')
+            && str_contains($request->url(), 'useRef=1')
+            && $request['transactionId'] === 'MP_TEST123'
             && $request['publicApiKey'] === $this->publicKey;
+    });
+});
+
+it('can look up a transaction by maishapay id', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'transactionId' => 12345,
+        ]),
+    ]);
+
+    $service = new Maishapay($this->publicKey, $this->secretKey, 0);
+
+    $response = $service->checkTransactionById(12345);
+
+    expect($response->successful())->toBe(true);
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/api/transaction/rest/v2/check')
+            && ! str_contains($request->url(), 'useRef=1')
+            && $request['transactionId'] === 12345;
     });
 });
 
@@ -196,14 +221,15 @@ it('normalizes maishapay statuses onto canonical values', function () {
         ->and($service->normalizeStatus('DECLINED'))->toBe('FAILED')
         ->and($service->normalizeStatus('Canceled'))->toBe('CANCELLED')
         ->and($service->normalizeStatus('whatever'))->toBe('PENDING')
-        ->and($service->extractStatus(['transaction' => ['status' => 'paid']]))->toBe('SUCCESS');
+        ->and($service->extractStatus(['transactionStatus' => 'FAILED']))->toBe('FAILED');
 });
 
 it('refreshes transaction status from the server and syncs the database', function () {
     Http::fake([
         'marchand.maishapay.online/*' => Http::response([
-            'transactionReference' => 'TEST_REF_SYNC',
-            'status' => 'SUCCESS',
+            'status_code' => 200,
+            'transactionStatus' => 'SUCCESS',
+            'originatingTransactionId' => 'TEST_REF_SYNC',
         ]),
     ]);
 

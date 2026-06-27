@@ -49,16 +49,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Transaction Status Endpoint
+    | Transaction Lookup API
     |--------------------------------------------------------------------------
     |
-    | The endpoint (relative to the collection base URL) used to query the
-    | live status of a transaction directly from MaishaPay's servers instead
-    | of relying on the local database. Adjust this path if your MaishaPay
-    | account exposes the status check on a different route.
+    | MaishaPay exposes a Transaction Lookup module on a dedicated base URL
+    | (separate from collection and B2C) used to query the live status and
+    | details of any transaction directly from MaishaPay's servers, rather
+    | than relying on the local database. The status check endpoint is
+    | relative to this base URL.
+    |
+    | Lookups can be performed by MaishaPay transaction ID, or by the
+    | merchant reference (by appending ?useRef=1, handled automatically).
     |
     */
-    'status_endpoint' => env('MAISHAPAY_STATUS_ENDPOINT', '/v2/store/status'),
+    'transaction_base_url' => env('MAISHAPAY_TRANSACTION_BASE_URL', 'https://marchand.maishapay.online/api/transaction'),
+    'status_endpoint' => env('MAISHAPAY_STATUS_ENDPOINT', '/rest/v2/check'),
 
     /*
     |--------------------------------------------------------------------------
