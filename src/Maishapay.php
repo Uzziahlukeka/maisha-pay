@@ -221,7 +221,7 @@ class Maishapay
      * nested), so we look in the common locations and map the raw value onto
      * the package's canonical statuses: PENDING, SUCCESS, FAILED, CANCELLED.
      */
-    public function extractStatus(array $payload): string
+    public static function extractStatus(array $payload): string
     {
         $raw = $payload['transactionStatus']
             ?? $payload['status']
@@ -232,13 +232,13 @@ class Maishapay
             ?? data_get($payload, 'transaction.status')
             ?? 'UNKNOWN';
 
-        return $this->normalizeStatus((string) $raw);
+        return self::normalizeStatus((string) $raw);
     }
 
     /**
      * Map a raw MaishaPay status string onto a canonical package status.
      */
-    public function normalizeStatus(string $status): string
+    public static function normalizeStatus(string $status): string
     {
         return match (mb_strtoupper(trim($status))) {
             'SUCCESS', 'SUCCESSFUL', 'COMPLETED', 'PAID', 'APPROVED' => 'SUCCESS',

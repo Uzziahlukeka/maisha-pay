@@ -145,7 +145,7 @@ final class EnhancedMaishapayService extends Maishapay
             // Unlike collection, a B2C transfer returns its final status
             // (SUCCESS or FAILED) synchronously, so sync the record now instead
             // of waiting for a callback that may never arrive.
-            $status = $this->extractStatus($payload);
+            $status = self::extractStatus($payload);
 
             $transaction->update([
                 'api_response' => $payload,
@@ -203,7 +203,7 @@ final class EnhancedMaishapayService extends Maishapay
         $payload = $response->json() ?? [];
 
         return [
-            'status' => $this->extractStatus($payload),
+            'status' => self::extractStatus($payload),
             'response' => $payload,
         ];
     }

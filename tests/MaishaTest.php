@@ -344,6 +344,64 @@ it('marks a B2C transaction failed when the operator declines with a 400 body', 
         ->and($result['transaction']->isFailed())->toBe(true);
 });
 
+it('processes a callback using the real notification payload', function () {
+    MaishapayTransaction::create([
+        'transaction_reference' => 'CB_REF_OK',
+        'payment_type' => 'MOBILEMONEY',
+        'provider' => 'AIRTEL',
+        'amount' => 1000,
+        'currency' => 'CDF',
+        'customer_email' => 'john@example.com',
+        'status' => 'PENDING',
+    ]);
+
+    // MaishaPay sends the merchant reference as originatingTransactionId and
+    // the outcome as transactionStatus.
+    $response = $this->postJson(route('maishapay.callback'), [
+        'status_code' => 200,
+        'transactionStatus' => 'SUCCESS',
+        'transactionId' => 12345,
+        'originatingTransactionId' => 'CB_REF_OK',
+    ]);
+
+    $response->assertOk()->assertJson(['success' => true]);
+
+    $transaction = MaishapayTransaction::where('transaction_reference', 'CB_REF_OK')->first();
+
+    expect($transaction->isSuccessful())->toBe(true)
+        ->and($transaction->processed_at)->not->toBeNull();
+});
+
+it('marks a transaction failed from a callback', function () {
+    MaishapayTransaction::create([
+        'transaction_reference' => 'CB_REF_KO',
+        'payment_type' => 'MOBILEMONEY',
+        'provider' => 'AIRTEL',
+        'amount' => 1000,
+        'currency' => 'CDF',
+        'customer_email' => 'john@example.com',
+        'status' => 'PENDING',
+    ]);
+
+    $response = $this->postJson(route('maishapay.callback'), [
+        'status_code' => 400,
+        'transactionStatus' => 'FAILED',
+        'originatingTransactionId' => 'CB_REF_KO',
+    ]);
+
+    $response->assertOk();
+
+    expect(MaishapayTransaction::where('transaction_reference', 'CB_REF_KO')->first()->isFailed())->toBe(true);
+});
+
+it('rejects a callback with no transaction reference', function () {
+    $response = $this->postJson(route('maishapay.callback'), [
+        'transactionStatus' => 'SUCCESS',
+    ]);
+
+    $response->assertStatus(400)->assertJson(['success' => false]);
+});
+
 it('throws exception', function () {
     throw new Exception('Something happened.');
 })->throws(Exception::class);
