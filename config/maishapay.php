@@ -49,6 +49,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Transaction Status Endpoint
+    |--------------------------------------------------------------------------
+    |
+    | The endpoint (relative to the collection base URL) used to query the
+    | live status of a transaction directly from MaishaPay's servers instead
+    | of relying on the local database. Adjust this path if your MaishaPay
+    | account exposes the status check on a different route.
+    |
+    */
+    'status_endpoint' => env('MAISHAPAY_STATUS_ENDPOINT', '/v2/store/status'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default Callback URL
     |--------------------------------------------------------------------------
     |

@@ -161,16 +161,68 @@ class Maishapay
     }
 
     /**
-     * Verify transaction status
+     * Query the live status of a transaction directly from MaishaPay's servers.
+     *
+     * This hits the configured status endpoint rather than reading from the
+     * local database, so the returned status reflects MaishaPay's source of
+     * truth at the moment of the call.
+     */
+    public function checkTransactionStatus(string $transactionReference): Response
+    {
+        $endpoint = config('maishapay.status_endpoint', '/v2/store/status');
+
+        return $this->makeRequest($endpoint, [
+            'transactionReference' => $transactionReference,
+            'gatewayMode' => $this->gatewayMode,
+            'publicApiKey' => $this->publicKey,
+            'secretApiKey' => $this->secretKey,
+        ], [
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ]);
+    }
+
+    /**
+     * Verify transaction status.
+     *
+     * Alias of checkTransactionStatus() kept for backwards compatibility.
      */
     public function verifyTransaction(string $transactionReference): Response
     {
-        // Note: You might need to implement this based on MaishaPay's verification endpoint
-        return $this->makeRequest('/verify', [
-            'transactionReference' => $transactionReference,
-            'publicApiKey' => $this->publicKey,
-            'secretApiKey' => $this->secretKey,
-        ]);
+        return $this->checkTransactionStatus($transactionReference);
+    }
+
+    /**
+     * Extract and normalize the status value from a MaishaPay status response.
+     *
+     * MaishaPay may return the status under a number of keys (and sometimes
+     * nested), so we look in the common locations and map the raw value onto
+     * the package's canonical statuses: PENDING, SUCCESS, FAILED, CANCELLED.
+     */
+    public function extractStatus(array $payload): string
+    {
+        $raw = $payload['status']
+            ?? $payload['paymentStatus']
+            ?? $payload['transactionStatus']
+            ?? data_get($payload, 'data.status')
+            ?? data_get($payload, 'transaction.status')
+            ?? data_get($payload, 'transaction.transactionStatus')
+            ?? 'UNKNOWN';
+
+        return $this->normalizeStatus((string) $raw);
+    }
+
+    /**
+     * Map a raw MaishaPay status string onto a canonical package status.
+     */
+    public function normalizeStatus(string $status): string
+    {
+        return match (mb_strtoupper(trim($status))) {
+            'SUCCESS', 'SUCCESSFUL', 'COMPLETED', 'PAID', 'APPROVED' => 'SUCCESS',
+            'FAILED', 'FAILURE', 'ERROR', 'DECLINED', 'REJECTED' => 'FAILED',
+            'CANCELLED', 'CANCELED' => 'CANCELLED',
+            default => 'PENDING',
+        };
     }
 
     /**

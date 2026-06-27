@@ -417,6 +417,63 @@ $stats = $this->enhancedMaishapayService->getTransactionStats();
 // $stats['b2c'] => total B2C transaction count
 ```
 
+## Checking transaction status from MaishaPay's servers
+
+Instead of trusting the status stored in your local database, you can query the
+**live** status of a transaction directly from MaishaPay's servers. This is
+useful when a callback was missed, delayed, or you simply want to confirm the
+real state before fulfilling an order.
+
+### Quick status check (raw response)
+
+```php
+use Uzhlaravel\Maishapay\Facades\Maishapay;
+
+// Returns the raw Illuminate HTTP Response from MaishaPay
+$response = Maishapay::checkTransactionStatus('MP_ABC123_1700000000');
+
+$status = $response->json('status'); // e.g. "SUCCESS"
+```
+
+### Canonical status via EnhancedMaishapayService
+
+```php
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
+
+$service = app(EnhancedMaishapayService::class);
+
+// Live status from the endpoint, normalized to PENDING|SUCCESS|FAILED|CANCELLED
+$status = $service->getTransactionStatus('MP_ABC123_1700000000');
+
+// Or get the status plus the raw payload
+['status' => $status, 'response' => $payload] =
+    $service->fetchTransactionStatus('MP_ABC123_1700000000');
+```
+
+### Refresh the local record from the server
+
+`refreshTransactionStatus()` queries MaishaPay, syncs the matching local
+`MaishapayTransaction` record (so the database acts as a cache), and fires the
+`TransactionStatusUpdated` event when the status changes:
+
+```php
+$transaction = $service->refreshTransactionStatus('MP_ABC123_1700000000');
+
+if ($transaction?->isSuccessful()) {
+    // fulfil the order
+}
+```
+
+### Configuration
+
+The status endpoint is configurable. By default it posts to
+`/v2/store/status` (relative to `base_url`) with `transactionReference`,
+`gatewayMode`, `publicApiKey` and `secretApiKey`. Override the path via the
+`MAISHAPAY_STATUS_ENDPOINT` environment variable or the `status_endpoint`
+config key if your MaishaPay account exposes status checks on a different
+route. The response status is read tolerantly from `status`, `paymentStatus`,
+`transactionStatus`, `data.status` or `transaction.status`.
+
 ## Testing
 
 ```bash

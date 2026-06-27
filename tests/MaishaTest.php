@@ -7,6 +7,7 @@ use Uzhlaravel\Maishapay\DataTransferObjects\CardPayment;
 use Uzhlaravel\Maishapay\DataTransferObjects\MobileMoney;
 use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
+use Uzhlaravel\Maishapay\Services\EnhancedMaishapayService;
 
 beforeEach(function () {
     $this->publicKey = 'MP-SBPK-test123';
@@ -163,6 +164,86 @@ it('generates unique transaction reference', function () {
     expect($ref1)->toStartWith('MP_')
         ->and($ref2)->toStartWith('MP_')
         ->and($ref1)->not->toBe($ref2);
+});
+
+it('can check transaction status from the endpoint', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'transactionReference' => 'MP_TEST123',
+            'status' => 'SUCCESS',
+            'description' => 'Payment completed',
+        ]),
+    ]);
+
+    $service = new Maishapay($this->publicKey, $this->secretKey, 0);
+
+    $response = $service->checkTransactionStatus('MP_TEST123');
+
+    expect($response->successful())->toBe(true)
+        ->and($response->json('status'))->toBe('SUCCESS');
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/v2/store/status')
+            && $request['transactionReference'] === 'MP_TEST123'
+            && $request['publicApiKey'] === $this->publicKey;
+    });
+});
+
+it('normalizes maishapay statuses onto canonical values', function () {
+    $service = new Maishapay($this->publicKey, $this->secretKey);
+
+    expect($service->normalizeStatus('successful'))->toBe('SUCCESS')
+        ->and($service->normalizeStatus('DECLINED'))->toBe('FAILED')
+        ->and($service->normalizeStatus('Canceled'))->toBe('CANCELLED')
+        ->and($service->normalizeStatus('whatever'))->toBe('PENDING')
+        ->and($service->extractStatus(['transaction' => ['status' => 'paid']]))->toBe('SUCCESS');
+});
+
+it('refreshes transaction status from the server and syncs the database', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response([
+            'transactionReference' => 'TEST_REF_SYNC',
+            'status' => 'SUCCESS',
+        ]),
+    ]);
+
+    MaishapayTransaction::create([
+        'transaction_reference' => 'TEST_REF_SYNC',
+        'payment_type' => 'MOBILEMONEY',
+        'provider' => 'AIRTEL',
+        'amount' => 1000,
+        'currency' => 'CDF',
+        'customer_email' => 'john@example.com',
+        'status' => 'PENDING',
+    ]);
+
+    $service = new EnhancedMaishapayService(
+        $this->publicKey,
+        $this->secretKey,
+        0
+    );
+
+    expect($service->getTransactionStatus('TEST_REF_SYNC'))->toBe('SUCCESS');
+
+    $transaction = $service->refreshTransactionStatus('TEST_REF_SYNC');
+
+    expect($transaction)->not->toBeNull()
+        ->and($transaction->isSuccessful())->toBe(true)
+        ->and($transaction->processed_at)->not->toBeNull();
+});
+
+it('returns null when refreshing an unknown transaction', function () {
+    Http::fake([
+        'marchand.maishapay.online/*' => Http::response(['status' => 'SUCCESS']),
+    ]);
+
+    $service = new EnhancedMaishapayService(
+        $this->publicKey,
+        $this->secretKey,
+        0
+    );
+
+    expect($service->refreshTransactionStatus('DOES_NOT_EXIST'))->toBeNull();
 });
 
 it('throws exception', function () {
