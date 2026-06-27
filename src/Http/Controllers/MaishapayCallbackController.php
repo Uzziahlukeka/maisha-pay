@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use Uzhlaravel\Maishapay\Events\TransactionStatusUpdated;
+use Uzhlaravel\Maishapay\Maishapay;
 use Uzhlaravel\Maishapay\Models\MaishapayTransaction;
 
 final class MaishapayCallbackController extends Controller
@@ -24,17 +25,17 @@ final class MaishapayCallbackController extends Controller
 
             Log::info('MaishaPay callback received', $data);
 
-            // Validate required fields
-            if (! isset($data['transactionReference'])) {
+            $transactionReference = $data['originatingTransactionId']
+                ?? $data['transactionReference']
+                ?? null;
+
+            if (! $transactionReference) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Transaction reference is required',
                 ], 400);
             }
 
-            $transactionReference = $data['transactionReference'];
-
-            // Find the transaction
             $transaction = MaishapayTransaction::query()->where('transaction_reference', $transactionReference)->first();
 
             if (! $transaction) {
@@ -46,40 +47,19 @@ final class MaishapayCallbackController extends Controller
                 ], 404);
             }
 
-            // Update transaction based on status
-            $status = $data['status'] ?? $data['paymentStatus'] ?? 'UNKNOWN';
+            $status = Maishapay::extractStatus($data);
 
-            switch (mb_strtoupper($status)) {
-                case 'SUCCESS':
-                case 'SUCCESSFUL':
-                case 'COMPLETED':
-                    $transaction->markAsSuccessful($data);
-                    Log::info('Transaction marked as successful', ['reference' => $transactionReference]);
-                    break;
+            match ($status) {
+                'SUCCESS' => $this->transition(fn () => $transaction->markAsSuccessful($data), 'successful', $transactionReference),
+                'FAILED' => $this->transition(fn () => $transaction->markAsFailed($data), 'failed', $transactionReference),
+                'CANCELLED' => $this->transition(fn () => $transaction->markAsCancelled(), 'cancelled', $transactionReference),
+                default => Log::warning('Unhandled transaction status', [
+                    'reference' => $transactionReference,
+                    'status' => $data['transactionStatus'] ?? $data['status'] ?? null,
+                ]),
+            };
 
-                case 'FAILED':
-                case 'FAILURE':
-                case 'ERROR':
-                    $transaction->markAsFailed($data);
-                    Log::info('Transaction marked as failed', ['reference' => $transactionReference]);
-                    break;
-
-                case 'CANCELLED':
-                case 'CANCELED':
-                    $transaction->markAsCancelled();
-                    Log::info('Transaction marked as cancelled', ['reference' => $transactionReference]);
-                    break;
-
-                default:
-                    Log::warning('Unknown transaction status', [
-                        'reference' => $transactionReference,
-                        'status' => $status,
-                    ]);
-                    break;
-            }
-
-            // Fire event for further processing
-            event(new TransactionStatusUpdated($transaction, $data));
+            event(new TransactionStatusUpdated($transaction->refresh(), $data));
 
             return response()->json([
                 'success' => true,
@@ -97,5 +77,12 @@ final class MaishapayCallbackController extends Controller
                 'message' => 'Callback processing failed',
             ], 500);
         }
+    }
+
+    private function transition(callable $apply, string $label, string $reference): void
+    {
+        $apply();
+
+        Log::info("Transaction marked as {$label}", ['reference' => $reference]);
     }
 }
